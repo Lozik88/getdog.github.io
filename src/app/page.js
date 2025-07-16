@@ -1,74 +1,61 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 
 export default function ChatBotApp() {
   const [messages, setMessages] = useState([
-    { sender: 'bot', text: 'Hi! How can I help you today?' }
+    { sender: 'bot', text: 'Hi! Type "get dog" or "get doggy" for a dog picture!' }
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
     if (!input.trim()) return;
+
     const userMessage = { sender: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
 
     if (input.toLowerCase() === 'get dog' || input.toLowerCase() === 'get doggy') {
+      setLoading(true);
       try {
         const res = await fetch('https://dog.ceo/api/breeds/image/random');
         const data = await res.json();
-        setMessages((prev) => [...prev, { sender: 'bot', text: 'Here is a dog for you! 🐶' }, { sender: 'bot', text: data.message }]);
-      } catch (error) {
-        setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, I could not fetch a dog image right now.' }]);
+        const botMessage = { sender: 'bot', text: 'Here’s your doggy!', image: data.message };
+        setMessages((prev) => [...prev, botMessage]);
+      } catch (err) {
+        setMessages((prev) => [...prev, { sender: 'bot', text: 'Failed to fetch dog image.' }]);
+      } finally {
+        setLoading(false);
       }
     } else {
-      const botResponse = getBotResponse(input);
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, I only know "get dog" or "get doggy".' }]);
     }
+
     setInput('');
   };
 
-  const getBotResponse = (userText) => {
-    if (userText.toLowerCase().includes('hello')) {
-      return { sender: 'bot', text: 'Hello there! 👋' };
-    } else if (userText.toLowerCase().includes('help')) {
-      return { sender: 'bot', text: 'Sure! What do you need help with?' };
-    } else {
-      return { sender: 'bot', text: "I'm just a simple bot, but I'm here to chat!" };
-    }
-  };
-
   return (
-    <div className="max-w-md mx-auto mt-10 p-4">
-      <Card>
-        <CardContent className="h-80 overflow-y-auto space-y-2 p-4 bg-gray-50 rounded-2xl">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-2 rounded-xl ${
-                msg.sender === 'user' ? 'bg-blue-100 text-right' : 'bg-green-100 text-left'
-              }`}
-            >
-              {msg.text.startsWith('http') ? (
-                <img src={msg.text} alt="Dog" className="max-h-48 rounded-xl mx-auto" />
-              ) : (
-                msg.text
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-      <div className="flex mt-4 gap-2">
-        <Input
+    <div style={{ maxWidth: 600, margin: '0 auto', fontFamily: 'sans-serif' }}>
+      <h1>GetDog Chatbot</h1>
+      <div style={{ border: '1px solid #ddd', padding: 10, minHeight: 300 }}>
+        {messages.map((msg, index) => (
+          <div key={index} style={{ marginBottom: 10 }}>
+            <strong>{msg.sender === 'bot' ? '🤖 Bot' : '🧑 You'}:</strong> {msg.text}
+            {msg.image && <div><img src={msg.image} alt="dog" style={{ maxWidth: '100%', marginTop: 10 }} /></div>}
+          </div>
+        ))}
+        {loading && <div>Loading...</div>}
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          style={{ width: '80%', padding: 5 }}
+          onKeyDown={(e) => e.key === 'Enter' ? handleSend() : null}
         />
-        <Button onClick={handleSend}>Send</Button>
+        <button onClick={handleSend} style={{ padding: '5px 10px', marginLeft: 5 }}>
+          Send
+        </button>
       </div>
     </div>
   );
